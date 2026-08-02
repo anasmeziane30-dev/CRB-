@@ -2,22 +2,50 @@ import os
 import discord
 from discord.ext import commands
 from datetime import timedelta
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
 
+# ==========================================
+# 0. خادم وهمي لإرضاء منصة Render وتشغيل البوت مجاناً
+# ==========================================
+class SimpleHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+
+def run_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), SimpleHandler)
+    server.serve_forever()
+
+# تشغيل الخادم الوهمي في الخلفية
+threading.Thread(target=run_server, daemon=True).start()
+
+# قراءة التوكن من إعدادات المنصة (Environment Variables)
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+# إعداد الصلاحيات الأساسية للبوت
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ==========================================
+# 1. الحدث عند تشغيل البوت
+# ==========================================
 @bot.event
 async def on_ready():
     print(f"تم تسجيل الدخول بنجاح باسم: {bot.user}")
     await bot.change_presence(activity=discord.Game(name="⚽ تنظيم مباريات كرة القدم"))
 
-WELCOME_CHANNEL_ID = 1533462690595606583 
-GOODBYE_CHANNEL_ID = 1533462691933585530 
+# ==========================================
+# 2. نظام الترحيب والتوديع (في قناتين منفصلتين)
+# ==========================================
+# استبدل الأرقام التالية بـ IDs القنوات الخاصة بك
+WELCOME_CHANNEL_ID = 123456789012345678 
+GOODBYE_CHANNEL_ID = 987654321098765432 
 
 @bot.event
 async def on_member_join(member):
@@ -43,6 +71,9 @@ async def on_member_remove(member):
         )
         await channel.send(embed=embed)
 
+# ==========================================
+# 3. الأوامر الرياضية (مثال: موعد المباراة)
+# ==========================================
 @bot.command(name="مباراة")
 async def next_match(ctx):
     embed = discord.Embed(
@@ -55,6 +86,11 @@ async def next_match(ctx):
     embed.add_field(name="🏟️ الملعب", value="الملعب الرئيسي", inline=False)
     await ctx.send(embed=embed)
 
+# ==========================================
+# 4. الأوامر الإدارية (Ban, Timeout, Clear)
+# ==========================================
+
+# أمر الحظر (Ban)
 @bot.command(name="ban")
 @commands.has_permissions(ban_members=True)
 async def ban_member(ctx, member: discord.Member, *, reason="لم يُذكر سبب"):
@@ -67,6 +103,7 @@ async def ban_member(ctx, member: discord.Member, *, reason="لم يُذكر س�
     embed.add_field(name="السبب", value=reason, inline=False)
     await ctx.send(embed=embed)
 
+# أمر الإسكات المؤقت (Timeout)
 @bot.command(name="timeout")
 @commands.has_permissions(moderate_members=True)
 async def timeout_member(ctx, member: discord.Member, minutes: int, *, reason="بدون سبب"):
@@ -81,6 +118,7 @@ async def timeout_member(ctx, member: discord.Member, minutes: int, *, reason="�
     embed.add_field(name="السبب", value=reason, inline=False)
     await ctx.send(embed=embed)
 
+# أمر مسح الرسائل (Clear)
 @bot.command(name="clear")
 @commands.has_permissions(manage_messages=True)
 async def clear_messages(ctx, amount: int = 5):
@@ -88,6 +126,11 @@ async def clear_messages(ctx, amount: int = 5):
     msg = await ctx.send(f"🧹 تم حذف **{len(deleted) - 1}** رسالة بنجاح.")
     await msg.delete(delay=3)
 
+# ==========================================
+# 5. أوامر إغلاق وفتح القنوات (Lock / Unlock)
+# ==========================================
+
+# إغلاق القناة
 @bot.command(name="lock")
 @commands.has_permissions(manage_channels=True)
 async def lock_channel(ctx, channel: discord.TextChannel = None):
@@ -103,6 +146,7 @@ async def lock_channel(ctx, channel: discord.TextChannel = None):
     )
     await ctx.send(embed=embed)
 
+# فتح القناة
 @bot.command(name="unlock")
 @commands.has_permissions(manage_channels=True)
 async def unlock_channel(ctx, channel: discord.TextChannel = None):
@@ -118,6 +162,9 @@ async def unlock_channel(ctx, channel: discord.TextChannel = None):
     )
     await ctx.send(embed=embed)
 
+# ==========================================
+# 6. معالجة أخطاء الصلاحيات
+# ==========================================
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
@@ -125,4 +172,5 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("❌ عذراً، لقد نسيت كتابة بعض المعلومات المطلوبة لتنفيذ الأمر.")
 
+# تشغيل البوت
 bot.run(TOKEN)
