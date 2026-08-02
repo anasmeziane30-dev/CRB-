@@ -21,22 +21,42 @@ def run_server():
 
 threading.Thread(target=run_server, daemon=True).start()
 
-# قراءة التوكن من إعدادات المنصة
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True
+intents.members = True  # ضروري جداً للترحيب والتوديع
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"تم تسجيل الدخول بنجاح باسم: {bot.user}")
-    await bot.change_presence(activity=discord.Game(name="⚽ تنظيم دوري كرة القدم"))
+    await bot.change_presence(activity=discord.Game(name="🔴⚪ CR Belouizdad"))
 
 # ==========================================
-# 1. نظام التدريبات والحضور التفاعلي (!training)
+# 1. نظام الترحيب والتوديع بالـ IDs المحددة
+# ==========================================
+WELCOME_CHANNEL_ID = 1533462690595606583
+GOODBYE_CHANNEL_ID = 1533462691933585530
+LOGO_URL = "https://i.ibb.co/689L5bV/1000017401.png"
+
+@bot.event
+async def on_member_join(member):
+    channel = member.guild.get_channel(WELCOME_CHANNEL_ID)
+    if channel:
+        message = f"مرحبا بك في بيتك {member.mention}\n{LOGO_URL}"
+        await channel.send(message)
+
+@bot.event
+async def on_member_remove(member):
+    channel = member.guild.get_channel(GOODBYE_CHANNEL_ID)
+    if channel:
+        message = f"اخرج قود {member.mention}\n{LOGO_URL}"
+        await channel.send(message)
+
+# ==========================================
+# 2. نظام التدريبات والحضور التفاعلي (!training)
 # ==========================================
 class AttendanceView(discord.ui.View):
     def __init__(self):
@@ -72,13 +92,13 @@ async def training_session(ctx, *, time_info="قريباً"):
     embed = discord.Embed(
         title="🔔 موعد تدريب جديد للفريق",
         description=f"التوقيت/التفاصيل: **{time_info}**\nالرجاء تأكيد حضوركم عبر الأزرار بالأسفل لتحديد العدد بدقة.",
-        color=discord.Color.blue()
+        color=discord.Color.red()
     )
     view = AttendanceView()
     await ctx.send(embed=embed, view=view)
 
 # ==========================================
-# 2. نظام الإنذارات والعقوبات (!card)
+# 3. نظام الإنذارات والعقوبات (!card)
 # ==========================================
 @bot.command(name="card")
 @commands.has_permissions(moderate_members=True)
@@ -99,7 +119,6 @@ async def give_card(ctx, member: discord.Member, card_type: str, *, reason="بد
         )
         embed.add_field(name="السبب", value=reason)
         await ctx.send(embed=embed)
-        # إعطاء تايم أوت تلقائي كمثال للعقوبة
         try:
             await member.timeout(timedelta(minutes=30), reason=reason)
         except:
@@ -108,7 +127,7 @@ async def give_card(ctx, member: discord.Member, card_type: str, *, reason="بد
         await ctx.send("❌ يرجى تحديد نوع الكارت بشكل صحيح: (اصفر / احمر)")
 
 # ==========================================
-# 3. نظام الانتقالات والعقود (!sign)
+# 4. نظام الانتقالات والعقود (!sign)
 # ==========================================
 @bot.command(name="sign")
 @commands.has_permissions(administrator=True)
@@ -116,23 +135,23 @@ async def sign_player(ctx, member: discord.Member, price: str, *, position: str)
     embed = discord.Embed(
         title="✍️ عقد رسمي جديد (انتقالات)",
         description=f"يسعد إدارة الفريق الإعلان عن توقيع عقد رسمي مع اللاعب الجديد! 🤝",
-        color=discord.Color.green()
+        color=discord.Color.red()
     )
     embed.add_field(name="👤 اللاعب", value=member.mention, inline=True)
     embed.add_field(name="📍 المركز", value=position, inline=True)
     embed.add_field(name="💰 قيمة الصفقة / الراتب", value=price, inline=False)
-    embed.set_footer(text="تمت الصفقة بنجاح لصالح الفريق!")
+    embed.set_footer(text="CR Belouizdad")
     await ctx.send(embed=embed)
 
 # ==========================================
-# 4. الأوامر الأساسية والإدارية السابقة
+# 5. الأوامر الرياضية والإدارية العامة
 # ==========================================
 @bot.command(name="مباراة")
 async def next_match(ctx):
     embed = discord.Embed(
         title="⚽ موعد المباراة القادمة",
         description="استعدوا يا شباب للمواجهة القادمة!",
-        color=discord.Color.green()
+        color=discord.Color.red()
     )
     embed.add_field(name="📅 التاريخ", value="يوم الأربعاء القادم", inline=True)
     embed.add_field(name="⏰ التوقيت", value="20:00 مساءً", inline=True)
