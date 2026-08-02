@@ -35,25 +35,35 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name="🔴⚪ CR Belouizdad"))
 
 # ==========================================
-# 1. نظام الترحيب والتوديع بالـ IDs المحددة
+# 1. نظام الترحيب والتوديع بالرابط المباشر (Embed)
 # ==========================================
 WELCOME_CHANNEL_ID = 1533462690595606583
 GOODBYE_CHANNEL_ID = 1533462691933585530
-LOGO_URL = "https://i.ibb.co/689L5bV/1000017401.png"
+
+# رابط شعار CRB المباشر الذي أخذته من Imgur
+IMAGE_URL = "https://i.imgur.com/Jccjg91.png" 
 
 @bot.event
 async def on_member_join(member):
     channel = member.guild.get_channel(WELCOME_CHANNEL_ID)
     if channel:
-        message = f"مرحبا بك في بيتك {member.mention}\n{LOGO_URL}"
-        await channel.send(message)
+        embed = discord.Embed(
+            description=f"مرحبا بك في بيتك {member.mention}",
+            color=discord.Color.red()
+        )
+        embed.set_image(url=IMAGE_URL)
+        await channel.send(embed=embed)
 
 @bot.event
 async def on_member_remove(member):
     channel = member.guild.get_channel(GOODBYE_CHANNEL_ID)
     if channel:
-        message = f"اخرج قود {member.mention}\n{LOGO_URL}"
-        await channel.send(message)
+        embed = discord.Embed(
+            description=f"اخرج قود {member.mention}",
+            color=discord.Color.red()
+        )
+        embed.set_image(url=IMAGE_URL)
+        await channel.send(embed=embed)
 
 # ==========================================
 # 2. نظام التدريبات والحضور التفاعلي (!training)
@@ -147,15 +157,12 @@ async def sign_player(ctx, member: discord.Member, price: str, *, position: str)
 # 5. الأوامر الرياضية والإدارية العامة
 # ==========================================
 @bot.command(name="مباراة")
-async def next_match(ctx):
+async def next_match(ctx, *, match_info="يوم الأربعاء القادم | 20:00 مساءً"):
     embed = discord.Embed(
         title="⚽ موعد المباراة القادمة",
-        description="استعدوا يا شباب للمواجهة القادمة!",
+        description=f"استعدوا يا شباب للمواجهة القادمة!\n\n📅 **التفاصيل:** {match_info}",
         color=discord.Color.red()
     )
-    embed.add_field(name="📅 التاريخ", value="يوم الأربعاء القادم", inline=True)
-    embed.add_field(name="⏰ التوقيت", value="20:00 مساءً", inline=True)
-    embed.add_field(name="🏟️ الملعب", value="الملعب الرئيسي", inline=False)
     await ctx.send(embed=embed)
 
 @bot.command(name="ban")
