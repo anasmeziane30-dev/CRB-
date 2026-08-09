@@ -39,8 +39,6 @@ async def on_ready():
 # ==========================================
 WELCOME_CHANNEL_ID = 1533462690595606583
 GOODBYE_CHANNEL_ID = 1533462691933585530
-
-# رابط شعار CRB المباشر الذي أخذته من Imgur
 IMAGE_URL = "https://i.imgur.com/Jccjg91.png" 
 
 @bot.event
@@ -66,7 +64,67 @@ async def on_member_remove(member):
         await channel.send(embed=embed)
 
 # ==========================================
-# 2. نظام التدريبات والحضور التفاعلي (!training)
+# 2. نظام التيكت (التذاكر) التفاعلي
+# ==========================================
+class CloseTicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="🔒 إغلاق التيكت", style=discord.ButtonStyle.red, custom_id="close_ticket")
+    async def close_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("⚠️ سيتم حذف القناة خلال 5 ثوانٍ...", ephemeral=True)
+        await discord.utils.sleep_until(discord.utils.utcnow() + timedelta(seconds=5))
+        try:
+            await interaction.channel.delete()
+        except:
+            pass
+
+class TicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="🎫 فتح تيكت", style=discord.ButtonStyle.green, custom_id="create_ticket")
+    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+        user = interaction.user
+        
+        # البحث عن رتبة الإدارة أو السماح للبرنامج بإنشاء روم خاصة
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
+
+        # إنشاء قناة جديدة خاصة بالتيكت
+        category = interaction.channel.category
+        ticket_channel = await guild.create_text_channel(
+            name=f"ticket-{user.name}",
+            category=category,
+            overwrites=overwrites
+        )
+
+        embed = discord.Embed(
+            title="🎫 تيكت جديدة",
+            description=f"مرحباً بك {user.mention}\nطرح مشكلتك أو استفسارك هنا، وسيقوم الفريق بالرد عليك في أقرب وقت.",
+            color=discord.Color.red()
+        )
+        
+        await ticket_channel.send(embed=embed, view=CloseTicketView())
+        await interaction.response.send_message(f"✅ تم فتح التيكت الخاصة بك بنجاح: {ticket_channel.mention}", ephemeral=True)
+
+@bot.command(name="setup_ticket")
+@commands.has_permissions(administrator=True)
+async def setup_ticket(ctx):
+    embed = discord.Embed(
+        title="🔴⚪ دعم نادي شباب بلوزداد",
+        description="إذا كانت لديك مشكلة، استفسار، أو تريد التواصل مع الإدارة، اضغط على الزر بالأسفل لفتح تيكت خاصة.",
+        color=discord.Color.red()
+    )
+    embed.set_image(url=IMAGE_URL)
+    await ctx.send(embed=embed, view=TicketView())
+
+# ==========================================
+# 3. نظام التدريبات والحضور التفاعلي (!training)
 # ==========================================
 class AttendanceView(discord.ui.View):
     def __init__(self):
@@ -108,7 +166,7 @@ async def training_session(ctx, *, time_info="قريباً"):
     await ctx.send(embed=embed, view=view)
 
 # ==========================================
-# 3. نظام الإنذارات والعقوبات (!card)
+# 4. نظام الإنذارات والعقوبات (!card)
 # ==========================================
 @bot.command(name="card")
 @commands.has_permissions(moderate_members=True)
@@ -137,7 +195,7 @@ async def give_card(ctx, member: discord.Member, card_type: str, *, reason="بد
         await ctx.send("❌ يرجى تحديد نوع الكارت بشكل صحيح: (اصفر / احمر)")
 
 # ==========================================
-# 4. نظام الانتقالات والعقود (!sign)
+# 5. نظام الانتقالات والعقود (!sign)
 # ==========================================
 @bot.command(name="sign")
 @commands.has_permissions(administrator=True)
@@ -154,7 +212,7 @@ async def sign_player(ctx, member: discord.Member, price: str, *, position: str)
     await ctx.send(embed=embed)
 
 # ==========================================
-# 5. الأوامر الرياضية والإدارية العامة
+# 6. الأوامر الرياضية والإدارية العامة
 # ==========================================
 @bot.command(name="مباراة")
 async def next_match(ctx, *, match_info="يوم الأربعاء القادم | 20:00 مساءً"):
@@ -189,14 +247,14 @@ async def clear_messages(ctx, amount: int = 5):
 async def lock_channel(ctx):
     channel = ctx.channel
     await channel.set_permissions(ctx.guild.default_role, send_messages=False)
-    await ctx.send("🔒 تم إغلاق القناة.")
+    await ctx.send("🔒 تم إغلاق القناة بنجاح.")
 
 @bot.command(name="unlock")
 @commands.has_permissions(manage_channels=True)
 async def unlock_channel(ctx):
     channel = ctx.channel
     await channel.set_permissions(ctx.guild.default_role, send_messages=True)
-    await ctx.send("🔓 تم فتح القناة.")
+    await ctx.send("🔓 تم فتح القناة بنجاح.")
 
 @bot.event
 async def on_command_error(ctx, error):
